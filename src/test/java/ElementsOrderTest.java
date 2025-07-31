@@ -2,13 +2,16 @@ import org.junit.Assert;
 import org.junit.Test;
 import ru.pechat55.constructor.render.Element2D;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+
+import static java.time.temporal.ChronoUnit.SECONDS;
 
 public class ElementsOrderTest extends ConstructorTest {
 
     @Test
     public void test() {
-        constructor.driver.manage().timeouts().setScriptTimeout(1, TimeUnit.SECONDS);
+        constructor.driver.manage().timeouts().scriptTimeout(Duration.of(1, SECONDS));
 
         Element2D rect1 = constructor.addRectangle();
         Element2D rect2 = constructor.addRectangle();

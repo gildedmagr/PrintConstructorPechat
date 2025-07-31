@@ -1,6 +1,8 @@
 package ru.pechat55.constructor.render;
 
 import com.sun.net.httpserver.HttpExchange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,6 +12,9 @@ import java.util.HashMap;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Parameters extends HashMap<String, Object> {
+
+    private static final Logger log = LoggerFactory.getLogger(Parameters.class);
+
 
     public static final char NEWLINE_CHAR = System.lineSeparator().charAt(0);
     public static final String JSON = "json";
@@ -40,11 +45,11 @@ public class Parameters extends HashMap<String, Object> {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
 
         String json = body.toString().replaceAll("\\\\n", "<br>");
-        Utils.log(json);
+        log.info(json);
         String modelName;
 
         modelName = Utils.parseModelName(json);

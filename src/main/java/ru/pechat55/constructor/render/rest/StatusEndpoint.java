@@ -38,7 +38,7 @@ public class StatusEndpoint extends Endpoint {
                         .append("<td>").append(toSeconds(constructor.lastTime)).append("</td>")
                         .append("<td>").append(constructor.runs).append("</td>")
                         .append("<td class=\"error\">")
-                        .append(constructor.errors > 0 ? constructor.errors : "")
+                        .append(constructor.errors.get() > 0 ? constructor.errors : "")
                         .append("</td>")
                         .append("<td>")
                         .append("<a href=\"reload?index=")
@@ -51,36 +51,14 @@ public class StatusEndpoint extends Endpoint {
             }
         }
 
-        String replacedHtml = html
+        return html
                 .replaceFirst(Constructor.$, Version.getVersion())
                 .replaceFirst(Constructor.$, getUptime())
                 .replaceFirst(Constructor.$, rows.toString());
-
-        try (
-                ReversedLinesFileReader reader = new ReversedLinesFileReader(new File(App.LOG_OUT_PATH));
-                ReversedLinesFileReader errReader = new ReversedLinesFileReader(new File(App.LOG_ERR_PATH));
-        ) {
-            StringBuilder out = new StringBuilder();
-            StringBuilder err = new StringBuilder();
-
-            for (int j = 0; j < 10; j++) {
-                out.append(reader.readLine().replaceAll(Constructor.$, " ")).append("\n\n");
-            }
-            for (int j = 0; j < 10; j++) {
-                err.append(errReader.readLine().replaceAll(Constructor.$, " ")).append("\n\n");
-            }
-            return replacedHtml
-                    .replaceFirst(Constructor.$, out.toString())
-                    .replaceFirst(Constructor.$, err.toString());
-        } catch (Exception e) {
-            e.printStackTrace();
-            return replacedHtml;
-        }
-
     }
 
     private String toSeconds(long millis) {
-        double seconds = Math.round(millis / 100);
+        double seconds = Math.round((float) millis / 100);
         return seconds / 10 + " s";
     }
 

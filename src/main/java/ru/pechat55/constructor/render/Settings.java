@@ -28,15 +28,18 @@ public class Settings {
     public static int REQUEST_TIMEOUT_SECONDS;
     public static String[] DOMAINS;
     public static String[] PRELOADED_MODELS;
-
+    public static String CHROME_HOST = System.getenv("SELENIUM_HOST");
+    public static String CHROME_PORT = System.getenv("SELENIUM_PORT");
+    public static String SELENIUM_GRID_URL = String.format("http://%s:%s/", CHROME_HOST, CHROME_PORT);
     private static Properties properties;
 
     static {
 
         try {
             Files.createDirectories(Paths.get(App.LOG_PATH));
-            System.setOut(new PrintStream(new FileOutputStream(App.LOG_OUT_PATH)));
-            System.setErr(new PrintStream(new FileOutputStream(App.LOG_ERR_PATH)));
+            System.setOut(System.err);
+           // System.setOut(new PrintStream(new FileOutputStream(App.LOG_OUT_PATH)));
+           // System.setErr(new PrintStream(new FileOutputStream(App.LOG_ERR_PATH)));
         } catch (Exception e) {
             e.printStackTrace();
         }

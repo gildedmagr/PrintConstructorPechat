@@ -4,8 +4,14 @@ import com.sun.net.httpserver.HttpExchange;
 import org.apache.http.HttpStatus;
 import ru.pechat55.constructor.render.App;
 
+import java.io.BufferedReader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
+import static ru.pechat55.constructor.render.App.LOG_ERR_PATH_COPY;
+import static ru.pechat55.constructor.render.App.LOG_OUT_PATH_COPY;
 
 public class LogEndpoint extends Endpoint {
 
@@ -15,17 +21,25 @@ public class LogEndpoint extends Endpoint {
 
     @Override
     public HttpResponse processRequest(HttpExchange exchange) throws Exception {
+
         StringBuilder body = new StringBuilder("=================STANDARD OUTPUT:\n\n");
-        for (String line : Files.readAllLines(Paths.get(App.LOG_OUT_PATH))) {
-            body
-                    .append(line)
-                    .append("\n");
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(App.LOG_OUT_PATH))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                body
+                        .append(line)
+                        .append("\n");
+            }
         }
+
         body.append("\n\n\n=================ERROR OUTPUT:\n\n");
-        for (String line : Files.readAllLines(Paths.get(App.LOG_ERR_PATH))) {
-            body
-                    .append(line)
-                    .append("\n");
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(App.LOG_ERR_PATH))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                body
+                        .append(line)
+                        .append("\n");
+            }
         }
 
         return new HttpResponse(

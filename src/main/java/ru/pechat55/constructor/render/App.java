@@ -1,6 +1,9 @@
 package ru.pechat55.constructor.render;
 
 import com.sun.net.httpserver.HttpServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 import ru.pechat55.constructor.render.rest.*;
 
 import java.io.File;
@@ -11,15 +14,21 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.logging.LogManager;
+
+import static ru.pechat55.constructor.render.Settings.PORT;
 
 public class App {
+    private static final Logger log = LoggerFactory.getLogger(App.class);
 
     public static final DateTimeFormatter LOG_FILE_NAME_PATTERN = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm");
     public static final String START_DATE_TIME = LOG_FILE_NAME_PATTERN.format(LocalDateTime.now(ZoneId.of("Europe/Moscow")));
     public static final String JAR_PATH = new File(App.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getAbsolutePath();
     public static final String LOG_PATH = App.JAR_PATH + "/log";
     public static final String LOG_OUT_PATH = App.LOG_PATH + "/" + START_DATE_TIME + ".out";
+    public static final String LOG_OUT_PATH_COPY = App.LOG_PATH + "/copy.out";
     public static final String LOG_ERR_PATH = App.LOG_PATH + "/" + START_DATE_TIME + ".err";
+    public static final String LOG_ERR_PATH_COPY = App.LOG_PATH + "/copy.err";
 
     public final long started;
 
@@ -33,9 +42,14 @@ public class App {
     public Endpoint animationEndpoint;
     public Endpoint quitEndpoint;
     public Endpoint reloadEndpoint;
+    public Endpoint testEndpoint;
 
     public App() {
-        killChromeProcesses();
+        log.info("Starting application at port: {}", PORT);
+        LogManager.getLogManager().reset();
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+
         started = System.currentTimeMillis();
         constructorPool = new ConstructorPool();
         statusEndpoint = new StatusEndpoint(this).doNotLogRequests();
@@ -49,28 +63,21 @@ public class App {
         Utils.copyResource("renderer.html", Settings.CONSTRUCTOR_DIR + "/renderer.html");
         constructorPool.init();
         Utils.trace("init");
-        //Runtime.getRuntime().addShutdownHook(new Thread(this::exit));
     }
 
     public void exit() {
-        killChromeProcesses();
         server.stop(0);
         System.exit(0);
     }
 
-    private void killChromeProcesses() {
-        ProcessBuilder process = new ProcessBuilder("pkill", "-f", "chrome");
-        try {
-            process.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     public String render(Parameters parameters) {
         Constructor constructor = constructorPool.get(parameters.getModelName());
         StringBuilder frames;
         long s = System.currentTimeMillis();
+        if (!constructor.isSessionValid()) {
+            constructor.startNewSession();
+        }
         try {
             constructor.setState(parameters.getJson(), parameters.getModelName());
             constructor.setSize(parameters.getWidth(), parameters.getHeight());
@@ -85,8 +92,8 @@ public class App {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            constructor.errors++;
+            log.error(e.getMessage(), e);
+            constructor.errors.incrementAndGet();
             throw e;
         } finally {
             constructor.runs++;
@@ -99,7 +106,7 @@ public class App {
 
     public void listen() {
         try {
-            server = HttpServer.create(new InetSocketAddress(Settings.PORT), 0);
+            server = HttpServer.create(new InetSocketAddress(PORT), 0);
             server.createContext("/", statusEndpoint);
             server.createContext("/status", statusEndpoint);
             server.createContext("/version", statusEndpoint);
@@ -114,22 +121,22 @@ public class App {
             server.setExecutor(executor);
             server.start();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
             System.exit(0);
         }
     }
 
     public static boolean isServerRunning() {
-        return !Utils.isPortAvailable(Settings.PORT);
+        return !Utils.isPortAvailable(PORT);
     }
 
     public static void main(String[] args) {
         if (args.length == 0) {
             if (!isServerRunning()) {
-                Utils.log("Constructor Rendering Server. Version =",  Version.getVersion());
+                log.info("Constructor Rendering Server. Version = {}", Version.getVersion());
                 new App();
             } else {
-                Utils.log("Server is already running");
+                log.info("Server is already running");
                 System.exit(0);
             }
         }
@@ -145,7 +152,7 @@ public class App {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
     }
 

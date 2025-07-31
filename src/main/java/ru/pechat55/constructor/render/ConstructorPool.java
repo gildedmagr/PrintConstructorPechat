@@ -1,41 +1,64 @@
 package ru.pechat55.constructor.render;
 
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.logging.Level;
 
+import static ru.pechat55.constructor.render.Settings.CHROME_HOST;
+import static ru.pechat55.constructor.render.Settings.CHROME_PORT;
+
 public class ConstructorPool {
+
+    private static final Logger log = LoggerFactory.getLogger(ConstructorPool.class);
 
     public volatile Constructor[] constructors = new Constructor[Settings.POOL_SIZE];
     public static ChromeOptions options;
 
     public ConstructorPool() {
-        System.setProperty("webdriver.chrome.driver", Settings.DRIVER_PATH);
+        System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
+        System.setProperty(ChromeDriverService.CHROME_DRIVER_LOG_PROPERTY, "chromedriver.log");
+        System.setProperty(ChromeDriverService.CHROME_DRIVER_VERBOSE_LOG_PROPERTY, "true");
         options = new ChromeOptions();
-        options.addArguments("--headless");
+        if (Objects.isNull(System.getenv("IS_HEADLESS")) || Boolean.TRUE.toString().equalsIgnoreCase(System.getenv("IS_HEADLESS"))) {
+            System.out.println("Create pool of web drivers in headless mode");
+            options.addArguments("--headless");
+        } else {
+            System.out.println("Create pool of web drivers in normal mode");
+        }
         options.addArguments("--disable-web-security");
         options.addArguments("--allow-file-access-from-files");
         options.addArguments("--allow-file-access");
         options.addArguments("--no-sandbox");
         options.addArguments("--silent");
-        //options.addArguments("--log-level=3");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-site-isolation-trials");
+        options.addArguments("--log-level=3");
         LoggingPreferences loggingPreferences = new LoggingPreferences();
         loggingPreferences.enable(LogType.BROWSER, Level.OFF);
         //options.setCapability(CapabilityType.LOGGING_PREFS, loggingPreferences);
     }
 
     public void init() {
+
         for (int i = 0, j = 0; i < Settings.POOL_SIZE; i++, j++) {
             if (j >= Settings.PRELOADED_MODELS.length) j = 0;
             final String modelName = Settings.PRELOADED_MODELS.length == 0 ? null : Settings.PRELOADED_MODELS[j];
             final int index = i;
             new Thread(() -> {
-                ChromeDriver driver = new ChromeDriver(options);
-                driver.setLogLevel(Level.INFO);
-                Constructor constructor = new Constructor(driver);
+                Constructor constructor = new Constructor(options);
                 if (modelName != null) constructor.loadModel(modelName);
                 constructor.setSize(Settings.DEFAULT_WIDTH, Settings.DEFAULT_HEIGHT);
                 constructor.setBackground(Settings.BACKGROUND);
@@ -48,7 +71,7 @@ public class ConstructorPool {
 
     public void reinit(int index) {
         constructors[index].driver.quit();
-        ChromeDriver driver = new ChromeDriver(options);
+        RemoteWebDriver driver = new RemoteWebDriver(options);
         driver.setLogLevel(Level.INFO);
         Constructor constructor = new Constructor(driver);
         constructor.setSize(Settings.DEFAULT_WIDTH, Settings.DEFAULT_HEIGHT);
@@ -97,7 +120,7 @@ public class ConstructorPool {
             winner.start = System.currentTimeMillis();
             return winner;
         }
-        Utils.log("Waiting for an idle Constructor");
+        log.info("Waiting for an idle Constructor");
         Utils.sleep(100);
         return get(modelName);
     }

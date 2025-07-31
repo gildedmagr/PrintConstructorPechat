@@ -1,5 +1,8 @@
 package ru.pechat55.constructor.render;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
+    private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
     private static Map<String, Long> times = new HashMap<>();
     private static final Pattern MODEL_PATTERN = Pattern.compile("\"model\"\\s?:\\s?\"([^\'^\"]{1,50})\"");
@@ -26,16 +30,6 @@ public class Utils {
 
     public static String getCurrentLogDateTime() {
         return LOG_DATE_TIME_PATTERN.format(LocalDateTime.now(ZoneId.of("Europe/Moscow")));
-    }
-
-    public static void log(Object... values) {
-        StringBuilder out = new StringBuilder()
-                .append(getCurrentLogDateTime())
-                .append(" ");
-        for (Object value : values) {
-            out.append(value).append(" ");
-        }
-        System.out.println(out);
     }
 
     public static String readResource(String path) {
@@ -107,7 +101,7 @@ public class Utils {
             times.put(value, now);
         } else {
             long passed = now - time;
-            Utils.log(value, passed, "ms");
+            log.info(value, passed, "ms");
             times.remove(value);
         }
     }
@@ -148,7 +142,7 @@ public class Utils {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
     }
 

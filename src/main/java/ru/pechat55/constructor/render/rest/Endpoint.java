@@ -2,9 +2,10 @@ package ru.pechat55.constructor.render.rest;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.pechat55.constructor.render.App;
 import ru.pechat55.constructor.render.Parameters;
-import ru.pechat55.constructor.render.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -13,6 +14,8 @@ import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public abstract class Endpoint implements HttpHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(Endpoint.class);
 
     public App app;
     private boolean logRequest;
@@ -30,13 +33,13 @@ public abstract class Endpoint implements HttpHandler {
     @Override
     public void handle(final HttpExchange exchange) {
         if (logRequest) {
-            Utils.log(exchange.getRequestMethod(), exchange.getRequestURI());
+            log.info("Received request {}, {}", exchange.getRequestMethod(), exchange.getRequestURI());
         }
         HttpResponse httpResponse;
         try {
             httpResponse = processRequest(exchange);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
             StringBuilder stackTrace = new StringBuilder();
             stackTrace.append(e.getMessage());
             for (StackTraceElement stackTraceElement : e.getStackTrace()) {
@@ -55,7 +58,7 @@ public abstract class Endpoint implements HttpHandler {
             bytes = httpResponse.body.getBytes(UTF_8);
             exchange.sendResponseHeaders(httpResponse.status, bytes.length);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
         try (OutputStream os = exchange.getResponseBody()) {
             if (bytes != null) {
@@ -63,7 +66,7 @@ public abstract class Endpoint implements HttpHandler {
             }
             os.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
     }
 
