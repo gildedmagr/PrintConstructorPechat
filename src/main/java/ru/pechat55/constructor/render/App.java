@@ -79,6 +79,7 @@ public class App {
             constructor.startNewSession();
         }
         try {
+            constructor.clearCache();
             constructor.setState(parameters.getJson(), parameters.getModelName());
             constructor.setSize(parameters.getWidth(), parameters.getHeight());
             constructor.setPolarAngle(45);

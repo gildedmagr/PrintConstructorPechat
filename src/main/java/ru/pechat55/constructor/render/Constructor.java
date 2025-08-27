@@ -82,6 +82,7 @@ public class Constructor {
         driver.setLogLevel(Level.INFO);
         log.info("Creating Constructor instance, {}, {}", driver.getCurrentUrl(), RENDERER_PATH);
         this.driver = driver;
+        clearCache();
         this.driver.get(RENDERER_PATH);
         log.info("Connected to Selenium Grid at: {}", seleniumGridUrl);
         driver.manage().timeouts().scriptTimeout(Duration.of(Settings.REQUEST_TIMEOUT_SECONDS - 1, ChronoUnit.SECONDS));
@@ -93,7 +94,8 @@ public class Constructor {
             driver.getCurrentUrl(); // or driver.getTitle()
             return true;
         } catch (NoSuchSessionException | SessionNotCreatedException e) {
-            log.error("Session not found, {}", e.getStackTrace(), e);
+            log.info("Session not found, {}", driver.getSessionId());
+            driver.quit();
             return false;
         } catch (Exception e) {
             log.error("Unexpected session check error: {}", e.getMessage());
@@ -101,6 +103,9 @@ public class Constructor {
         }
     }
 
+    public void clearCache(){
+        this.driver.manage().deleteAllCookies();
+    }
 
     public void startNewSession() {
         log.info("Creating new session");
