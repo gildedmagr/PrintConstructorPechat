@@ -95,7 +95,7 @@ public class Constructor {
             return true;
         } catch (NoSuchSessionException | SessionNotCreatedException e) {
             log.info("Session not found, {}", driver.getSessionId());
-            driver.close();
+            driver = null;
             return false;
         } catch (Exception e) {
             log.error("Unexpected session check error: {}", e.getMessage());
