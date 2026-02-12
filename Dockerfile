@@ -14,7 +14,7 @@ COPY src ./src
 RUN mvn clean compile assembly:single -DskipTests
 
 # Stage 2: Create a smaller runtime image with only the JRE
-FROM eclipse-temurin:21-alpine
+FROM eclipse-temurin:21
 
 # Set the working directory for the final application
 WORKDIR /app
