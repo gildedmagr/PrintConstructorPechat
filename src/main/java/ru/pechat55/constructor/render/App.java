@@ -80,6 +80,24 @@ public class App {
         }
         try {
             constructor.clearCache();
+            /* 15.10.2026 (Роман, WZ 22324294, восстановлено после отката Jenkins-сборкой #23/#24):
+               setState() ниже только перекрашивает дизайн на УЖЕ загруженной геометрии и сама пишет
+               this.modelName = modelName в конце, поэтому сравнение modelName ПОСЛЕ setState() всегда
+               было бы true. Явно грузим геометрию ДО setState(), если вкладка из пула держит другую
+               модель. getModelName() бывает null/пустым -- тогда геометрию не трогаем (старое поведение). */
+            String wantedModel = parameters.getModelName();
+            if (wantedModel != null && !wantedModel.isEmpty() && (constructor.modelName == null || !constructor.modelName.equals(wantedModel))) {
+                /* 15.10.2026, продолжение: loadModel() сама ловит исключение и тихо возвращает false,
+                   modelName при неудаче НЕ обновляется -- но старый код шёл дальше на setState() со
+                   СТАРОЙ геометрией от прошлого товара в этой же вкладке пула, отдавая клиенту честную
+                   картинку ЧУЖОГО товара вместо ошибки. Под нагрузкой (пул занят) loadModel() сейчас
+                   не успевает почти никогда. Явный отказ вместо показа не того товара -- клиент увидит
+                   спиннер ещё раз, не чужую вещь. */
+                boolean modelLoaded = constructor.loadModel(wantedModel);
+                if (!modelLoaded) {
+                    throw new RuntimeException("loadModel timed out/failed for " + wantedModel + ", refusing to render stale geometry");
+                }
+            }
             constructor.setState(parameters.getJson(), parameters.getModelName());
             constructor.setSize(parameters.getWidth(), parameters.getHeight());
             constructor.setPolarAngle(45);
