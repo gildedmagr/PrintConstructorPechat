@@ -80,6 +80,15 @@ public class App {
         }
         try {
             constructor.clearCache();
+            /* 15.10.2026 (Роман, WZ 22324294, восстановлено после отката Jenkins-сборкой #23/#24):
+               setState() ниже только перекрашивает дизайн на УЖЕ загруженной геометрии и сама пишет
+               this.modelName = modelName в конце, поэтому сравнение modelName ПОСЛЕ setState() всегда
+               было бы true. Явно грузим геометрию ДО setState(), если вкладка из пула держит другую
+               модель. getModelName() бывает null/пустым -- тогда геометрию не трогаем (старое поведение). */
+            String wantedModel = parameters.getModelName();
+            if (wantedModel != null && !wantedModel.isEmpty() && (constructor.modelName == null || !constructor.modelName.equals(wantedModel))) {
+                constructor.loadModel(wantedModel);
+            }
             constructor.setState(parameters.getJson(), parameters.getModelName());
             constructor.setSize(parameters.getWidth(), parameters.getHeight());
             constructor.setPolarAngle(45);
