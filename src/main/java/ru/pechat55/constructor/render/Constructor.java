@@ -180,12 +180,25 @@ public class Constructor {
     }
 
     public boolean loadModel(String modelName) {
+        if (modelName == null || modelName.trim().isEmpty()) {
+            log.error("Cannot load a blank 3D model name");
+            return false;
+        }
         try {
-            driver.executeAsyncScript(loadModelScript.replaceFirst($, modelName));
+            // Pass the model name as a Selenium argument (no JS interpolation).
+            // The JS helper calls the Selenium callback only after the 3D scene
+            // actually loads, or returns an explicit ERROR on failure.
+            Object result = driver.executeAsyncScript(loadModelScript, modelName);
+            if (!"OK".equals(result)) {
+                log.error("3D model {} did not load: {}", modelName, result);
+                this.modelName = null;
+                return false;
+            }
             this.modelName = modelName;
             return true;
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            this.modelName = null;
+            log.error("3D model {} timed out or failed: {}", modelName, e.getMessage(), e);
             return false;
         }
     }

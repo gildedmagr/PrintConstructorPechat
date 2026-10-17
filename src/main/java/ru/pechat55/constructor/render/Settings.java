@@ -64,7 +64,7 @@ public class Settings {
         DEFAULT_HEIGHT = parseInt("default_height", 512);
         IDLE_TIME_MS = parseInt("idle_time_ms", 100);
         QUALITY = parseInt("quality", 80);
-        REQUEST_TIMEOUT_SECONDS = parseInt("request_timeout_seconds", 10);
+        REQUEST_TIMEOUT_SECONDS = parseInt("request_timeout_seconds", 60);
         if (QUALITY < 1 || QUALITY > 99) QUALITY = 80;
     }
 
