@@ -154,24 +154,26 @@ public class Constructor {
     }
 
     public void setState(final String json, final String modelName) {
+        // The editor restores Fabric images asynchronously. Do not render frames until
+        // every saved object has been restored and the THREE texture has been updated.
+        // Replace ALL configured host aliases cumulatively using literal replacement:
+        // the former code re-started from json in every iteration and discarded earlier
+        // rewrites, which can leave print images inaccessible to headless Chrome.
         String state = json;
         for (String domain : Settings.DOMAINS) {
-            if (!isEmpty(domain)) {
-                state = json.replaceAll(domain, "file://" + Settings.WEB_DIR);
+            if (!isEmpty(domain) && !isEmpty(Settings.WEB_DIR)) {
+                state = state.replace(domain, "file://" + Settings.WEB_DIR);
             }
         }
 
-//        Matcher matcher = Constructor.IMG_SRC_PATTERN.matcher(json);
-//        while (matcher.find()) {
-//            String url = matcher.group();
-//            Utils.log("Preloading image:", url);
-//            String preloadScript = preloadImageScript.replaceFirst($, url);
-//            driver.executeAsyncScript(preloadScript);
-//        }
-
-        String script = setStateScript.replaceFirst($, state);
-        driver.executeAsyncScript(script);
-        driver.executeAsyncScript("var callback = arguments[arguments.length - 1];Constructor.instance.preview.updateSideMaterials(() => callback());");
+        int waitMillis = Math.max(3000, Math.min(45000,
+                (Settings.REQUEST_TIMEOUT_SECONDS - 5) * 1000));
+        Object result = driver.executeAsyncScript(setStateScript, state, waitMillis);
+        if (!"OK".equals(result)) {
+            String message = "Cannot restore 3D design for model " + modelName + ": " + result;
+            log.error(message);
+            throw new IllegalStateException(message);
+        }
         this.modelName = modelName;
     }
 
